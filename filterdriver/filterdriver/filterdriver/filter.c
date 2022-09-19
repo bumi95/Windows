@@ -15,8 +15,16 @@ const UNICODE_STRING g_myExtensions[] = {
 #endif
 
 FLT_OPERATION_REGISTRATION g_callbacks[] = {
+#if 0
 	{
 		IRP_MJ_CREATE,
+		0,
+		OnPreCreateFile,
+		NULL
+	},
+#endif
+	{
+		IRP_MJ_READ,
 		0,
 		OnPreCreateFile,
 		NULL
@@ -176,12 +184,13 @@ FLT_PREOP_CALLBACK_STATUS OnPreCreateFile(
 	NTSTATUS status;
 	PFLT_FILE_NAME_INFORMATION nameInfo;
 	BOOLEAN hasExtension;
+	FLT_NOTIFICATION send;
 
 	UNREFERENCED_PARAMETER(pFltObjects);
 	UNREFERENCED_PARAMETER(ppCompletionContext);
 
 	PAGED_CODE();
-
+	//DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "enter the OnPreCreateFile()\n");
 	status = FltGetFileNameInformation(pData,						// irp_mj_create로 생성하려는 파일 또는 디렉터리의 
 		FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,		// 이름 정보(FLT_FILE_NAME_INFORMATION)를 가져옴
 		&nameInfo);													// 이 이름 정보는 파싱되지 않은 날 것의 정보임
@@ -190,16 +199,32 @@ FLT_PREOP_CALLBACK_STATUS OnPreCreateFile(
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 
 	FltParseFileNameInformation(nameInfo);							// 이 함수로 이름 정보를 파싱하여 FLT_FILE_NAME_INFORMATION 구조체의 각 멤버 변수에 정리되어 초기화됨
-
+	DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "%s\n", (PCSTR)nameInfo->Name.Buffer);
 	if (nameInfo->Extension.Buffer != UNICODE_NULL) {
 		hasExtension = IsMyExtension(&nameInfo->Extension);
 
 		if (hasExtension == TRUE) {
+			wcscpy_s(send.filePath, nameInfo->Name.Length, nameInfo->Name.Buffer);
 			FltReleaseFileNameInformation(nameInfo);				// 이름 정보 구조체 해제(release)
-			DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "Is text file.. can not open\n");
 
-			FltCancelFileOpen(pFltObjects->Instance, pFltObjects->FileObject);	// 파일 생성 취소
-			pData->IoStatus.Status = STATUS_ACCESS_DENIED;		// 파일 접근 차단
+			status = FltSendMessage(
+				g_filterData.pFilter,
+				&g_filterData.pIocpClientPort,
+				&send,
+				sizeof(FLT_NOTIFICATION),
+				NULL,
+				0,
+				NULL
+			);
+
+			if (!NT_SUCCESS(status)) {
+				DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "send failed\n");
+			}
+			pData->IoStatus.Status = status;
+			//DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "Is text file.. can not open\n");
+
+			//FltCancelFileOpen(pFltObjects->Instance, pFltObjects->FileObject);	// 파일 생성 취소
+			//pData->IoStatus.Status = STATUS_ACCESS_DENIED;		// 파일 접근 차단
 			pData->IoStatus.Information = 0;
 
 			return FLT_PREOP_COMPLETE;
@@ -224,6 +249,8 @@ NTSTATUS ConnectNotifyCallback(
 	UNREFERENCED_PARAMETER(SizeOfContext);
 	UNREFERENCED_PARAMETER(ConnectionPortCookie);
 
+	g_filterData.pIocpClientPort = ClientPort;
+
 	DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "user mode application(%u) connected\n", PtrToUint(PsGetCurrentProcessId()));
 	return STATUS_SUCCESS;
 }
@@ -246,6 +273,13 @@ NTSTATUS MessageNotifyCallback(
 )
 {
 	UNREFERENCED_PARAMETER(PortCookie);
+	UNREFERENCED_PARAMETER(InputBuffer);
+	UNREFERENCED_PARAMETER(InputBufferLength);
+	UNREFERENCED_PARAMETER(OutputBuffer);
+	UNREFERENCED_PARAMETER(OutputBufferLength);
+	UNREFERENCED_PARAMETER(ReturnOutputBufferLength);
+#if 0
+	UNREFERENCED_PARAMETER(PortCookie);
 	if (InputBuffer && InputBufferLength == sizeof(FLT_NOTIFICATION)) {
 		PFLT_NOTIFICATION sent = (PFLT_NOTIFICATION)InputBuffer;
 		DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "data : %s\n", sent->Contents);
@@ -256,5 +290,6 @@ NTSTATUS MessageNotifyCallback(
 		RtlCopyMemory(rpy->str, "Hello user", 11);
 		*ReturnOutputBufferLength = 11;
 	}
+#endif
 	return STATUS_SUCCESS;
 }
