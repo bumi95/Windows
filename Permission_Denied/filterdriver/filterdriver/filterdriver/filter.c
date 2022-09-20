@@ -10,25 +10,24 @@ const UNICODE_STRING g_myExtensions[] = {
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
-#pragma alloc_text(PAGE, OnSimpleFilterInstanceSetup)
 #pragma alloc_text(PAGE, OnPreCreateFile)
 #endif
 
 FLT_OPERATION_REGISTRATION g_callbacks[] = {
-#if 0
 	{
 		IRP_MJ_CREATE,
 		0,
 		OnPreCreateFile,
 		NULL
 	},
-#endif
+#if 0
 	{
 		IRP_MJ_READ,
 		0,
-		OnPreCreateFile,
-		NULL
+		NULL,
+		OnPostReadFile
 	},
+#endif
 	{
 		IRP_MJ_OPERATION_END
 	}
@@ -57,7 +56,7 @@ FLT_REGISTRATION g_FilterRegistration = {
 	g_contextRegistration,
 	g_callbacks,
 	OnSimpleFilterUnload,
-	OnSimpleFilterInstanceSetup,
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -121,7 +120,19 @@ NTSTATUS DriverEntry(
 		DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "보안서술자생성실패. status : 0x%X\n", status);
 		FltUnregisterFilter(g_filterData.pFilter);
 	}
+	DriverObject->DriverUnload = DriverUnload;
 	return status;
+}
+
+VOID DriverUnload(
+	PDRIVER_OBJECT DriverObject
+)
+{
+	UNREFERENCED_PARAMETER(DriverObject);
+	if (g_filterData.pFilter)
+		FltCloseCommunicationPort(g_filterData.pIocpServerPort);
+	if (g_filterData.pFilter)
+		FltUnregisterFilter(g_filterData.pFilter);
 }
 
 NTSTATUS OnSimpleFilterUnload(
@@ -133,7 +144,7 @@ NTSTATUS OnSimpleFilterUnload(
 
 	return STATUS_SUCCESS;
 }
-
+#if 0
 NTSTATUS OnSimpleFilterInstanceSetup(
 	PCFLT_RELATED_OBJECTS pFltObjects,
 	FLT_INSTANCE_SETUP_FLAGS flags,
@@ -154,6 +165,7 @@ NTSTATUS OnSimpleFilterInstanceSetup(
 
 	return STATUS_SUCCESS;
 }
+#endif
 
 BOOLEAN IsMyExtension(
 	PUNICODE_STRING pExtension
@@ -199,14 +211,13 @@ FLT_PREOP_CALLBACK_STATUS OnPreCreateFile(
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 
 	FltParseFileNameInformation(nameInfo);							// 이 함수로 이름 정보를 파싱하여 FLT_FILE_NAME_INFORMATION 구조체의 각 멤버 변수에 정리되어 초기화됨
-	DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "%s\n", (PCSTR)nameInfo->Name.Buffer);
+	//DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "%s\n", (PCSTR)nameInfo->Name.Buffer);
 	if (nameInfo->Extension.Buffer != UNICODE_NULL) {
 		hasExtension = IsMyExtension(&nameInfo->Extension);
 
 		if (hasExtension == TRUE) {
-			wcscpy_s(send.filePath, nameInfo->Name.Length, nameInfo->Name.Buffer);
 			FltReleaseFileNameInformation(nameInfo);				// 이름 정보 구조체 해제(release)
-
+			RtlCopyMemory(send.Contents, "textFile Create Denied", 23);
 			status = FltSendMessage(
 				g_filterData.pFilter,
 				&g_filterData.pIocpClientPort,
@@ -220,11 +231,11 @@ FLT_PREOP_CALLBACK_STATUS OnPreCreateFile(
 			if (!NT_SUCCESS(status)) {
 				DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "send failed\n");
 			}
-			pData->IoStatus.Status = status;
+			//pData->IoStatus.Status = status;
 			//DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "Is text file.. can not open\n");
 
-			//FltCancelFileOpen(pFltObjects->Instance, pFltObjects->FileObject);	// 파일 생성 취소
-			//pData->IoStatus.Status = STATUS_ACCESS_DENIED;		// 파일 접근 차단
+			FltCancelFileOpen(pFltObjects->Instance, pFltObjects->FileObject);	// 파일 생성 취소
+			pData->IoStatus.Status = STATUS_ACCESS_DENIED;		// 파일 접근 차단
 			pData->IoStatus.Information = 0;
 
 			return FLT_PREOP_COMPLETE;

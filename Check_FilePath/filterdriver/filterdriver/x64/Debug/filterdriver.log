@@ -1,0 +1,26 @@
+﻿  Building 'CheckFilePath' with toolset 'WindowsKernelModeDriver10.0' and the 'Desktop' target platform.
+  Stamping x64\Debug\CheckFilePath.inf
+  Stamping [Version] section with DriverVer=09/20/2022,16.35.12.593
+C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\filterdriver\CheckFilePath.inf : warning 1420: [DefaultInstall]-based INF cannot be processed as Primitive.
+C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\filterdriver\CheckFilePath.inf(22-22): warning 1421: Section [DefaultInstall] should have an architecture decoration.
+C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\filterdriver\CheckFilePath.inf(29-29): warning 1421: Section [DefaultUninstall] should have an architecture decoration.
+C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\filterdriver\CheckFilePath.inf(55-55): warning 1205: Section [CheckFilePath.DriverFiles] referenced from DelFiles and CopyFiles directive.
+  filter.c
+  filterdriver.vcxproj -> C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\x64\Debug\CheckFilePath.sys
+  Done Adding Additional Store
+  Successfully signed: C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\x64\Debug\CheckFilePath.sys
+  
+  ........................
+  Signability test complete.
+  
+  Errors:
+  None
+  
+  Warnings:
+  None
+  
+  Catalog generation complete.
+  C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\x64\Debug\CheckFilePath\checkfilepath.cat
+  Done Adding Additional Store
+  Successfully signed: C:\Users\USER\Desktop\JongBum\git\Windows\Check_FilePath\filterdriver\x64\Debug\CheckFilePath\checkfilepath.cat
+  

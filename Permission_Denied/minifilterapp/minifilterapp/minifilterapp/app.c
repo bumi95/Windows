@@ -41,7 +41,7 @@ int main() {
 
 		status = WaitForSingleObject(ov.hEvent, INFINITE);
 		if (GetOverlappedResult(port_handle, &ov, &returned_bytes, FALSE)) {
-			wprintf(L"file full name : %s\n", s_msg.msg.filePath);
+			printf("%s\n", s_msg.msg.Contents);
 		}
 	}
 
