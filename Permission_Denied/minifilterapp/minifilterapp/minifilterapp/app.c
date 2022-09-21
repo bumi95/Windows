@@ -24,12 +24,12 @@ int main() {
 		printf("FilterConnectCommunicationPort failed (HRESULT = 0x%x)", h_result);
 		return -1;
 	}
-
+	
 	while (TRUE) {
 		ov.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (!ov.hEvent) {
 			printf("create event error = %u\n", GetLastError());
-			return -1;
+			break;
 		}
 
 		h_result = FilterGetMessage(port_handle, &s_msg.msgHeader, sizeof(s_msg), &ov);
@@ -43,6 +43,8 @@ int main() {
 		if (GetOverlappedResult(port_handle, &ov, &returned_bytes, FALSE)) {
 			printf("%s\n", s_msg.msg.Contents);
 		}
+		if (ov.hEvent != NULL)
+			CloseHandle(ov.hEvent);
 	}
 
 	return 0;

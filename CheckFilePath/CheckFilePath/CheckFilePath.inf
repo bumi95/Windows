@@ -1,0 +1,79 @@
+;
+; CheckFilePath.inf
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class="ContentScreener"
+ClassGuid={3e3f0674-c83c-4558-bb26-9820e1eba5c5} ; TODO: specify appropriate ClassGuid
+Provider=%ManufacturerName%
+CatalogFile=CheckFilePath.cat
+DriverVer= ; TODO: set DriverVer in stampinf property pages
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir = 12
+CheckFilePath.DriverFiles = 12
+
+;
+; default install sections
+;
+
+[DefaultInstall]
+OptionDesc	=	%ServiceDescription%
+CopyFiles	=	CheckFilePath.DriverFiles
+
+[DefaultInstall.Services]
+AddService	=	%ServiceName%,,CheckFilePath.Service
+
+[DefaultUninstall]
+DelFiles	=	CheckFilePath.DriverFiles
+
+[DefaultUninstall.Services]
+DelService	=	%ServiceName%,0x200 ; Ensure service is stopped before deleting
+
+;
+; services Section
+;
+
+[CheckFilePath.Service]
+DisplayName		=	%ServiceName%
+Description		=	%ServiceDescription%
+ServiceBinary	=	%12%\%DriverName%.sys
+Dependencies	=	"FltMgr"
+ServiceType		=	2
+StartType		=	3
+ErrorControl	=	1
+LoadOrderGroup	=	"FSFilter Content Screener"
+AddReg			=	CheckFilePath.AddRegistry
+
+[CheckFilePath.AddRegistry]
+HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
+HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
+
+[CheckFilePath.DriverFiles]
+%DriverName%.sys
+
+[SourceDisksNames]
+1 = %DiskId1%,,,
+
+[SourceDisksFiles]
+CheckFilePath.sys  = 1,,
+
+;
+; string Section
+;
+
+[Strings]
+ManufacturerName		=	"jongbum"
+ServiceDescription		=	"CheckFilePath jong bum"
+ServiceName				=	"CheckFilePath"
+DriverName				=	"CheckFilePath"
+DiskId1					=	"CheckFilePath Device Installation Disk"
+
+; instances specific information
+DefaultInstance			=	"CheckFilePath"
+Instance1.Name			=	"CheckFilePath"
+Instance1.Altitude		=	"265000"
+Instance1.Flags			=	0x0

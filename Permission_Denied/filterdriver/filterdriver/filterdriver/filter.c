@@ -10,7 +10,6 @@ const UNICODE_STRING g_myExtensions[] = {
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
-#pragma alloc_text(PAGE, OnPreCreateFile)
 #endif
 
 FLT_OPERATION_REGISTRATION g_callbacks[] = {
@@ -102,7 +101,7 @@ NTSTATUS DriverEntry(
 			NULL,
 			ConnectNotifyCallback,
 			DisconnectNotifyCallback,
-			MessageNotifyCallback,
+			NULL,
 			1
 		);
 
@@ -120,19 +119,7 @@ NTSTATUS DriverEntry(
 		DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "보안서술자생성실패. status : 0x%X\n", status);
 		FltUnregisterFilter(g_filterData.pFilter);
 	}
-	DriverObject->DriverUnload = DriverUnload;
 	return status;
-}
-
-VOID DriverUnload(
-	PDRIVER_OBJECT DriverObject
-)
-{
-	UNREFERENCED_PARAMETER(DriverObject);
-	if (g_filterData.pFilter)
-		FltCloseCommunicationPort(g_filterData.pIocpServerPort);
-	if (g_filterData.pFilter)
-		FltUnregisterFilter(g_filterData.pFilter);
 }
 
 NTSTATUS OnSimpleFilterUnload(
@@ -140,32 +127,11 @@ NTSTATUS OnSimpleFilterUnload(
 )
 {
 	UNREFERENCED_PARAMETER(flags);
+	FltCloseCommunicationPort(g_filterData.pIocpServerPort);
 	FltUnregisterFilter(g_filterData.pFilter);
 
 	return STATUS_SUCCESS;
 }
-#if 0
-NTSTATUS OnSimpleFilterInstanceSetup(
-	PCFLT_RELATED_OBJECTS pFltObjects,
-	FLT_INSTANCE_SETUP_FLAGS flags,
-	DEVICE_TYPE volumeDeviceType,
-	FLT_FILESYSTEM_TYPE volumeFilesystemType
-)
-{
-	UNREFERENCED_PARAMETER(pFltObjects);
-	UNREFERENCED_PARAMETER(flags);
-	UNREFERENCED_PARAMETER(volumeFilesystemType);
-
-	PAGED_CODE();
-
-	ASSERT(pFltObjects->Filter == g_filterData.pFilter);
-
-	if (volumeDeviceType == FILE_DEVICE_NETWORK_FILE_SYSTEM)
-		return STATUS_FLT_DO_NOT_ATTACH;
-
-	return STATUS_SUCCESS;
-}
-#endif
 
 BOOLEAN IsMyExtension(
 	PUNICODE_STRING pExtension
@@ -201,8 +167,6 @@ FLT_PREOP_CALLBACK_STATUS OnPreCreateFile(
 	UNREFERENCED_PARAMETER(pFltObjects);
 	UNREFERENCED_PARAMETER(ppCompletionContext);
 
-	PAGED_CODE();
-	//DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "enter the OnPreCreateFile()\n");
 	status = FltGetFileNameInformation(pData,						// irp_mj_create로 생성하려는 파일 또는 디렉터리의 
 		FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,		// 이름 정보(FLT_FILE_NAME_INFORMATION)를 가져옴
 		&nameInfo);													// 이 이름 정보는 파싱되지 않은 날 것의 정보임
@@ -211,7 +175,7 @@ FLT_PREOP_CALLBACK_STATUS OnPreCreateFile(
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 
 	FltParseFileNameInformation(nameInfo);							// 이 함수로 이름 정보를 파싱하여 FLT_FILE_NAME_INFORMATION 구조체의 각 멤버 변수에 정리되어 초기화됨
-	//DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "%s\n", (PCSTR)nameInfo->Name.Buffer);
+
 	if (nameInfo->Extension.Buffer != UNICODE_NULL) {
 		hasExtension = IsMyExtension(&nameInfo->Extension);
 
@@ -231,9 +195,7 @@ FLT_PREOP_CALLBACK_STATUS OnPreCreateFile(
 			if (!NT_SUCCESS(status)) {
 				DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "send failed\n");
 			}
-			//pData->IoStatus.Status = status;
-			//DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "Is text file.. can not open\n");
-
+			
 			FltCancelFileOpen(pFltObjects->Instance, pFltObjects->FileObject);	// 파일 생성 취소
 			pData->IoStatus.Status = STATUS_ACCESS_DENIED;		// 파일 접근 차단
 			pData->IoStatus.Information = 0;
@@ -272,35 +234,4 @@ VOID DisconnectNotifyCallback(
 {
 	UNREFERENCED_PARAMETER(ConnectionCookie);
 	DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "user mode application(%u) disconnected\n", PtrToUint(PsGetCurrentProcessId()));
-}
-
-NTSTATUS MessageNotifyCallback(
-	PVOID PortCookie,
-	PVOID InputBuffer,
-	ULONG InputBufferLength,
-	PVOID OutputBuffer,
-	ULONG OutputBufferLength,
-	PULONG ReturnOutputBufferLength
-)
-{
-	UNREFERENCED_PARAMETER(PortCookie);
-	UNREFERENCED_PARAMETER(InputBuffer);
-	UNREFERENCED_PARAMETER(InputBufferLength);
-	UNREFERENCED_PARAMETER(OutputBuffer);
-	UNREFERENCED_PARAMETER(OutputBufferLength);
-	UNREFERENCED_PARAMETER(ReturnOutputBufferLength);
-#if 0
-	UNREFERENCED_PARAMETER(PortCookie);
-	if (InputBuffer && InputBufferLength == sizeof(FLT_NOTIFICATION)) {
-		PFLT_NOTIFICATION sent = (PFLT_NOTIFICATION)InputBuffer;
-		DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "data : %s\n", sent->Contents);
-	}
-
-	if (OutputBuffer && OutputBufferLength == sizeof(FLT_REPLY)) {
-		PFLT_REPLY rpy = (PFLT_REPLY)OutputBuffer;
-		RtlCopyMemory(rpy->str, "Hello user", 11);
-		*ReturnOutputBufferLength = 11;
-	}
-#endif
-	return STATUS_SUCCESS;
 }

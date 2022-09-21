@@ -1,6 +1,6 @@
 ﻿  Building 'filterdriver' with toolset 'WindowsKernelModeDriver10.0' and the 'Desktop' target platform.
   Stamping x64\Debug\filterdriver.inf
-  Stamping [Version] section with DriverVer=09/20/2022,16.24.19.820
+  Stamping [Version] section with DriverVer=09/21/2022,13.42.31.376
 C:\Users\USER\source\repos\filterdriver\filterdriver\filterdriver.inf : warning 1420: [DefaultInstall]-based INF cannot be processed as Primitive.
 C:\Users\USER\source\repos\filterdriver\filterdriver\filterdriver.inf(22-22): warning 1421: Section [DefaultInstall] should have an architecture decoration.
 C:\Users\USER\source\repos\filterdriver\filterdriver\filterdriver.inf(29-29): warning 1421: Section [DefaultUninstall] should have an architecture decoration.
