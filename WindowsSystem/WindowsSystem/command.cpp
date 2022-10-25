@@ -43,6 +43,42 @@ int CmdProcessing() {
 	if (!_tcscmp(cmdTokenList[0], __T("exit"))) {
 		return TRUE;
 	}
+	else if (!_tcscmp(cmdTokenList[0], __T("start"))) {
+		STARTUPINFO si = { 0, };
+		PROCESS_INFORMATION pi;
+		si.cb = sizeof(si);
+
+		TCHAR str[STR_LEN] = __T("cmd ");
+		size_t count = _tcslen(str);
+		for (int i = 1; i < tokenNum; i++) {
+			_tcscpy(str + count, cmdTokenList[i]);
+			_tcscpy(str + count + 1, __T(" "));
+			count += _tcslen(cmdTokenList[i]);
+		}
+		str[_tcslen(str) - 1] = 0;
+		BOOL isrun = CreateProcess(NULL, str, NULL, NULL,
+			TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi);
+		if (isrun == TRUE) {
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
+		}
+		else
+			_tprintf(ERROR_CMD, cmdTokenList[0]);
+	}
+	else if (!_tcscmp(cmdTokenList[0], __T("notepad"))) {
+		STARTUPINFO si = { 0, };
+		PROCESS_INFORMATION pi;
+		si.cb = sizeof(si);
+
+		BOOL isrun = CreateProcess(NULL, cmdTokenList[0], NULL, NULL, TRUE,
+			0, NULL, NULL, &si, &pi);
+		if (isrun == TRUE) {
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
+		}
+		else
+			_tprintf(ERROR_CMD, cmdTokenList[0]);
+	}
 	else {
 		_tprintf(ERROR_CMD, cmdTokenList[0]);
 	}
