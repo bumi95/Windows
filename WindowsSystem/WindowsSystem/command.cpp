@@ -11,6 +11,8 @@
 TCHAR ERROR_CMD[] = __T("'%s'은(는) 실행할 수 있는 프로그램이 아닙니다. \n");
 
 int CmdProcessing();
+int cmdprocessing_2(TCHAR**, int);
+
 TCHAR* StrLower(TCHAR*);
 
 int _tmain(int argc, TCHAR* argv[]) {
@@ -18,7 +20,13 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	DWORD isExit;
 	while (1) {
-		isExit = CmdProcessing();
+		if (argc > 1) {
+			isExit = cmdprocessing_2(argv, argc);
+			argc = 1;
+		}
+		else {
+			isExit = CmdProcessing();
+		}
 		if (isExit == TRUE) {
 			_fputts(__T("명령어 처리를 종료합니다.\n"), stdout);
 			break;
@@ -31,6 +39,30 @@ TCHAR cmdString[STR_LEN];
 TCHAR cmdTokenList[CMD_TOKEN_NUM][STR_LEN];
 TCHAR seps[] = __T(" ,\t\n");
 
+
+int cmdprocessing_2(TCHAR** argv, int len) {
+	int token_list = 0;
+	for (int i = 1; i < len; i++) {
+		_tcscpy(cmdTokenList[token_list++], StrLower(argv[i]));
+	}
+	if (!_tcscmp(cmdTokenList[0], __T("exit")))
+		return TRUE;
+	else if (!_tcscmp(cmdTokenList[0], __T("echo"))) {
+		for (int i = 1; i < token_list; i++) {
+			if (i != token_list - 1) {
+				_fputts(cmdTokenList[i], stdout);
+				_fputtc(' ', stdout);
+			}
+			else
+				_fputts(cmdTokenList[i], stdout);
+		}
+		_fputts(__T("\n"), stdout);
+	}
+	else {
+		_tprintf(ERROR_CMD, cmdTokenList[0]);
+	}
+	return 0;
+}
 int CmdProcessing() {
 	_fputts(__T("Best command prompt>> "), stdout);
 	_getts_s(cmdString);
@@ -48,12 +80,12 @@ int CmdProcessing() {
 		PROCESS_INFORMATION pi;
 		si.cb = sizeof(si);
 
-		TCHAR str[STR_LEN] = __T("cmd ");
-		size_t count = _tcslen(str);
+		TCHAR str[STR_LEN] = __T("WindowsSystem.exe ");
+		//size_t count = _tcslen(str);
 		for (int i = 1; i < tokenNum; i++) {
-			_tcscpy(str + count, cmdTokenList[i]);
-			_tcscpy(str + count + 1, __T(" "));
-			count += _tcslen(cmdTokenList[i]);
+			_tcscpy(str + _tcslen(str), cmdTokenList[i]);
+			_tcscpy(str + _tcslen(str), __T(" "));
+			//count += _tcslen(cmdTokenList[i]);
 		}
 		str[_tcslen(str) - 1] = 0;
 		BOOL isrun = CreateProcess(NULL, str, NULL, NULL,
@@ -78,6 +110,13 @@ int CmdProcessing() {
 		}
 		else
 			_tprintf(ERROR_CMD, cmdTokenList[0]);
+	}
+	else if (!_tcscmp(cmdTokenList[0], __T("echo"))) {
+		for (int i = 1; i < tokenNum; i++) {
+			_fputts(cmdTokenList[i], stdout);
+			_fputtc(__T(' '), stdout);
+		}
+		_fputts(__T("\n"), stdout);
 	}
 	else {
 		_tprintf(ERROR_CMD, cmdTokenList[0]);
